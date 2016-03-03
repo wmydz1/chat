@@ -1,0 +1,156 @@
+
+<html>
+<meta charset="utf-8">
+<head>
+<title>websocket chat</title>
+<style>
+* {
+	margin: 0;
+	padding: 0;
+}
+
+.chatbox {
+	width: 700px;
+	margin: 0 auto;
+	text-align: left;
+	/* border: 1px solid red; */
+}
+
+.chatbox h1 {
+	font-size: 30px;
+	color: #CCC;
+	display: block;
+	text-align: center;
+	margin-left: 20px auto ;
+}
+
+.connBox {
+	text-align: left;
+	line-height: 35px;
+
+}
+
+.messageBox {
+	width: 100%;
+	height: 300px;
+	overflow: auto;
+	text-align: left;
+	border: 1px solid #000;
+}
+
+.sendBox {
+	text-align: left;
+	line-height: 35px;
+}
+
+button {
+	height: 35px;
+	width: 80px;
+	color: #fff;
+	font-size: 20px;
+	background: #34a1a1;
+	cursor: pointer;
+	border: 0;
+	margin: 10px auto;
+}
+</style>
+<script type="text/javascript" src="js/jquery-1.11.1.js"></script>
+<script>
+	var ws;// websocket 对象
+	var socketCreated = false;// 是否建立websocket
+	// 输出log msgType =ERROR red | ok green | defalut black
+	function printLog(msg, msgType) {
+		if (msgType == "OK") {
+			msg = "<span style='color: green'>" + msg + "</span>";
+
+		} else if (msgType == "ERROR") {
+			msg = "<span style='color: red'>" + msg + "</span>";
+		}
+		$(".messageBox").append(msg + "<br/>");
+	}
+	// 建立ws连接
+	function openWs() {
+		printLog("连接已经建立", "OK");
+		ws.send($("#userName").val() + "已经进入聊天室了");
+		$(".sendBox").show();
+	}
+	// 接受到消息
+	function msg(msg) {
+		console.log(msg.data);
+		printLog(msg.data);
+	}
+	// 发生了错误
+	function error() {
+		printLog("服务器内部错误", "ERROR");
+	}
+	// 关闭连接
+	function closeWs() {
+		$("#connBtn").html("连接");
+		$(".sendBox").hide();
+	}
+
+	$(function() {
+		// 隐藏发送区域
+		$(".sendBox").hide();
+		if ("WebSocket" in window || "MozWebSocket" in window) {
+			printLog("支持websocket", "OK");
+			$("#addrText").val("localhost:8080/chat/webSocket");
+		} else {
+			printLog("不支持websocket", "ERROR");
+			$("#connBtn").attr("disabled", "true");
+		}
+		//绑定发送按钮事件
+		$("#sendBtn").click(function() {
+			var value = $("#sendText").val();
+			ws.send($("#userName").val() + "说:" + value);
+			$("#sendText").val("");
+
+		});
+		// 连接 断开
+		$("#connBtn").click(function() {
+			if (socketCreated && (ws.readyState == 1 || ws.readyState == 0)) {
+				ws.send($("#userName").val() + "离开了聊天室.....")
+				// 关闭连接
+				ws.close();
+				socketCreated = false;
+			} else {
+				var addr = $("addrText").val();
+				// 创建连接websocket
+				if ("WebSocket" in window) {
+					/*      ws = new WebSocket("ws://" + addr); */
+					ws = new WebSocket("ws://localhost:8080/chat/webSocket");
+				} else if ("MozWebSocket" in window) {
+					ws = MozWebSocket("ws://" + addr);
+				}
+				socketCreated = true;
+				$("#connBtn").html("断开");
+
+				// 注册ws函数
+				ws.onopen = openWs;
+				ws.onmessage = msg;
+				ws.onerror = error;
+				ws.onclose = closeWs;
+			}
+		});
+	})
+</script>
+</head>
+<body>
+	<div class="chatbox">
+		<h1>websocket java服务器推送</h1>
+		<div class="connBox">
+			服务器地址:<input type="text" class="inputText" id="addrText"
+				style="width: 300px;height: 35px" /> 用户名:<input type="text" class="inputText"
+				style="width: 150px;height: 35px" id="userName" />
+			<button type="button" id="connBtn">连接</button>
+		</div>
+		<div class="messageBox" id="messageBox"></div>
+		<div class="sendBox">
+			<input type="text" class="inputText" style="width: 600px;height: 35px"
+				id="sendText" />
+			<button type="button" id="sendBtn" >发送</button>
+		</div>
+
+	</div>
+</body>
+</html>
